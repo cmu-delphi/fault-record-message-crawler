@@ -21,6 +21,11 @@ EMOJI_FLAG = os.getenv("EMOJI_FLAG")
 
 CLEANR = re.compile("<.*?>")
 
+SHIB_MEMBER = os.getenv("SHIB_MEMBER")
+SHIB_FIRST_NAME = os.getenv("SHIB_FIRST_NAME")
+SHIB_LAST_NAME = os.getenv("SHIB_LAST_NAME")
+SCRAPER_EMAIL = os.getenv("SCRAPER_EMAIL")
+
 
 def parse_timestamp(ts: float) -> str:
     """Convert Slack message timestamp to date
@@ -121,7 +126,41 @@ def get_user_id(user_email: str, fault_record_api_url: str) -> int:
         user = requests.get(result_url).json()[0]
         return int(user.get("user_id"))
     except IndexError:
-        return 1  # TODO: should be removed. As we don't have real users it returns id == 1
+        return -1  # TODO: should be removed. As we don't have real users it returns id == 1
+
+def get_or_create_user(user_email: str, first_name: str, last_name: str, fault_record_api_url: str) -> int:
+    """Get user id by email. Sends request to the fault-record API with email filter. If user is not found, the user is created.
+
+
+    Args:
+        user_email (str): user email
+        first_name (str): user first name
+        last_name (str): user last name
+        fault_record_api_url (str): fault record API url
+
+    Returns:
+        int: In case there is no user with given email, returns 1, which is ID of the anonymous user.
+    """
+    user_id = get_user_id(user_email, fault_record_api_url)
+
+    if user_id == -1:
+        logger.info(f"Posting new User ({user_email}).")
+        user_post_url = f"{fault_record_api_url}/api/v1/users"
+        payload = {
+            "email": user_email,
+            "first_name": first_name,
+            "last_name": last_name
+        }
+        headers = {"Content-type": "application/json", "Accept": "text/plain", "Member": SHIB_MEMBER, "givenName": SHIB_FIRST_NAME, "sn": SHIB_LAST_NAME}
+        response = requests.post(url=user_post_url, data=json.dumps(payload), headers=headers)
+        if response.status_code == 200:
+            logger.info(f"Request ended with status {response.status_code}. User #{response.json().get('user_id')} has been successfully created.")
+        else:
+            logger.error(f"Something went wrong. User {user_email} was not created.")
+        user_id = response.json().get("user_id")
+    
+    return user_id
+
 
 
 def get_message_replies(client: WebClient, channel_id: str, parent_message_ts: str, fault_record_api_url: str) -> List:
@@ -392,7 +431,7 @@ def post_fault_record(message: dict, record_post_url: str):
         "signals": message.get("signals"),
         "source_link": message["url"],
     }
-    headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    headers = {"Content-type": "application/json", "Accept": "text/plain", "Member": SHIB_MEMBER, "givenName": SHIB_FIRST_NAME, "sn": SHIB_LAST_NAME}
     response = requests.post(url=record_post_url, data=json.dumps(payload), headers=headers)
     if response.status_code == 200:
         logger.info(f"Request ended with status {response.status_code}. Fault Record #{response.json().get('fault_id')} has been successfully created.")
@@ -419,7 +458,8 @@ def post_fault_record_updates(updates: List[Dict], fault_id: int, update_post_ur
             "record_date": update["created"],
             "source_link": update["url"],
         }
-        response = requests.post(url=update_post_url, json=payload)
+        headers = {"Member": SHIB_MEMBER, "givenName": SHIB_FIRST_NAME, "sn": SHIB_LAST_NAME}
+        response = requests.post(url=update_post_url, json=payload, headers=headers)
         if response.status_code == 200:
             logger.info("Fault Record update has been successfully posted.")
         else:
@@ -466,12 +506,13 @@ def get_fault_records(fault_record_api_url: str, from_date_days: int, source: st
         List[Dict]: list of fault-records
     """
     result = []
-    base_url = f"{fault_record_api_url}/api/v1/faults?disable_pagination=True"
+    base_url = f"{fault_record_api_url}/api/v1/admin/faults?disable_pagination=True"
     from_record_date = dtime.now() - timedelta(days=int(from_date_days))
     from_record_date_str = dtime.strftime(from_record_date, "%Y-%m-%d")
     query_filter = f'"field": "record_date", "op": ">", "value": "{from_record_date_str}"'
     result_url = f"{base_url}&filters=[{{{query_filter}}}]"
-    response = requests.get(result_url).json()
+    headers = {"Member": SHIB_MEMBER, "givenName": SHIB_FIRST_NAME, "sn": SHIB_LAST_NAME}
+    response = requests.get(result_url, headers=headers).json()
     for record in response:
         record_source = urlparse(record.get("source_link"))
         if source in record_source.netloc.split("."):
@@ -492,7 +533,8 @@ def get_fault_record_updates(fault_record_api_url: str, fault_id: int):
     base_url = f"{fault_record_api_url}/api/v1/updates?disable_pagination=True"
     query_filter = f'"field": "fault_id", "op": "=", "value": "{fault_id}"'
     result_url = f"{base_url}&filters=[{{{query_filter}}}]"
-    response = requests.get(result_url).json()
+    headers = {"Member": SHIB_MEMBER, "givenName": SHIB_FIRST_NAME, "sn": SHIB_LAST_NAME}
+    response = requests.get(result_url, headers=headers).json()
     return response
 
 
