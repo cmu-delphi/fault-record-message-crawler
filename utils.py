@@ -458,6 +458,8 @@ def post_fault_record_updates(updates: List[Dict], fault_id: int, update_post_ur
         fault_id (int): Fault Record id
         update_post_url (str): fault-record API url to post Update
     """
+    global SCRAPER_USER_ID
+
     if SCRAPER_USER_ID == -1:
         SCRAPER_USER_ID = get_or_create_user(SCRAPER_EMAIL, SHIB_FIRST_NAME, SHIB_LAST_NAME, FAULT_RECORD_API_URL)
 
