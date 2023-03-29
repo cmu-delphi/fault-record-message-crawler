@@ -26,6 +26,8 @@ SHIB_FIRST_NAME = os.getenv("SHIB_FIRST_NAME")
 SHIB_LAST_NAME = os.getenv("SHIB_LAST_NAME")
 SCRAPER_EMAIL = os.getenv("SCRAPER_EMAIL")
 
+SCRAPER_USER_ID = None
+
 
 def parse_timestamp(ts: float) -> str:
     """Convert Slack message timestamp to date
@@ -420,11 +422,15 @@ def post_fault_record(message: dict, record_post_url: str):
     Returns:
         response: json response which contains Record info
     """
+
+    if SCRAPER_USER_ID is None:
+        SCRAPER_USER_ID = get_or_create_user(SCRAPER_EMAIL, SHIB_FIRST_NAME, SHIB_LAST_NAME)
+
     logger.info("Posting new Fault Record.")
     payload = {
         "name": message["title"],
         "desc": message["description"],
-        "user_id": message["reported_by"],
+        "user_id": SCRAPER_USER_ID,
         "first_occurance": message["reported_date"],
         "last_occurance": message["reported_date"],
         "record_date": message["reported_date"],
@@ -448,10 +454,13 @@ def post_fault_record_updates(updates: List[Dict], fault_id: int, update_post_ur
         fault_id (int): Fault Record id
         update_post_url (str): fault-record API url to post Update
     """
+    if SCRAPER_USER_ID is None:
+        SCRAPER_USER_ID = get_or_create_user(SCRAPER_EMAIL, SHIB_FIRST_NAME, SHIB_LAST_NAME)
+
     logger.info(f"Posting Fault Record updates for #{fault_id}")
     for update in updates:
         payload = {
-            "user_id": update["author"],
+            "user_id": SCRAPER_USER_ID,
             "desc": update["description"],
             "fault_id": fault_id,
             "fault_status": "Test Status",
