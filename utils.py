@@ -21,12 +21,14 @@ EMOJI_FLAG = os.getenv("EMOJI_FLAG")
 
 CLEANR = re.compile("<.*?>")
 
+FAULT_RECORD_API_URL = os.getenv("FAULT_RECORD_API_URL")
+
 SHIB_MEMBER = os.getenv("SHIB_MEMBER")
 SHIB_FIRST_NAME = os.getenv("SHIB_FIRST_NAME")
 SHIB_LAST_NAME = os.getenv("SHIB_LAST_NAME")
 SCRAPER_EMAIL = os.getenv("SCRAPER_EMAIL")
 
-SCRAPER_USER_ID = None
+SCRAPER_USER_ID = -1
 
 
 def parse_timestamp(ts: float) -> str:
@@ -155,7 +157,7 @@ def get_or_create_user(user_email: str, first_name: str, last_name: str, fault_r
         }
         headers = {"Content-type": "application/json", "Accept": "text/plain", "Member": SHIB_MEMBER, "givenName": SHIB_FIRST_NAME, "sn": SHIB_LAST_NAME}
         response = requests.post(url=user_post_url, data=json.dumps(payload), headers=headers)
-        if response.status_code == 200:
+        if response.status_code == 201:
             logger.info(f"Request ended with status {response.status_code}. User #{response.json().get('user_id')} has been successfully created.")
         else:
             logger.error(f"Something went wrong. User {user_email} was not created.")
@@ -423,8 +425,10 @@ def post_fault_record(message: dict, record_post_url: str):
         response: json response which contains Record info
     """
 
-    if SCRAPER_USER_ID is None:
-        SCRAPER_USER_ID = get_or_create_user(SCRAPER_EMAIL, SHIB_FIRST_NAME, SHIB_LAST_NAME)
+    global SCRAPER_USER_ID
+
+    if SCRAPER_USER_ID == -1:
+        SCRAPER_USER_ID = get_or_create_user(SCRAPER_EMAIL, SHIB_FIRST_NAME, SHIB_LAST_NAME, FAULT_RECORD_API_URL)
 
     logger.info("Posting new Fault Record.")
     payload = {
@@ -439,7 +443,7 @@ def post_fault_record(message: dict, record_post_url: str):
     }
     headers = {"Content-type": "application/json", "Accept": "text/plain", "Member": SHIB_MEMBER, "givenName": SHIB_FIRST_NAME, "sn": SHIB_LAST_NAME}
     response = requests.post(url=record_post_url, data=json.dumps(payload), headers=headers)
-    if response.status_code == 200:
+    if response.status_code == 201:
         logger.info(f"Request ended with status {response.status_code}. Fault Record #{response.json().get('fault_id')} has been successfully created.")
     else:
         logger.error(f"Something went wrong. Fault Record from {message['url']} was not created.")
@@ -454,8 +458,8 @@ def post_fault_record_updates(updates: List[Dict], fault_id: int, update_post_ur
         fault_id (int): Fault Record id
         update_post_url (str): fault-record API url to post Update
     """
-    if SCRAPER_USER_ID is None:
-        SCRAPER_USER_ID = get_or_create_user(SCRAPER_EMAIL, SHIB_FIRST_NAME, SHIB_LAST_NAME)
+    if SCRAPER_USER_ID == -1:
+        SCRAPER_USER_ID = get_or_create_user(SCRAPER_EMAIL, SHIB_FIRST_NAME, SHIB_LAST_NAME, FAULT_RECORD_API_URL)
 
     logger.info(f"Posting Fault Record updates for #{fault_id}")
     for update in updates:
@@ -469,7 +473,7 @@ def post_fault_record_updates(updates: List[Dict], fault_id: int, update_post_ur
         }
         headers = {"Member": SHIB_MEMBER, "givenName": SHIB_FIRST_NAME, "sn": SHIB_LAST_NAME}
         response = requests.post(url=update_post_url, json=payload, headers=headers)
-        if response.status_code == 200:
+        if response.status_code == 201:
             logger.info("Fault Record update has been successfully posted.")
         else:
             logger.error(f"Something went wrong. Could not post Fault Record update for Fault #{fault_id} (slack message url -> {update['url']}).")
