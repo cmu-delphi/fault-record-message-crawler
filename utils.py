@@ -127,7 +127,7 @@ def get_user_id(user_email: str, fault_record_api_url: str) -> int:
     try:
         user = requests.get(result_url).json()[0]
         return int(user.get("user_id"))
-    except IndexError:
+    except:
         return -1  # TODO: should be removed. As we don't have real users it returns id == 1
 
 def get_or_create_user(user_email: str, first_name: str, last_name: str, fault_record_api_url: str) -> int:
