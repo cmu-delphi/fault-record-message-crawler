@@ -22,8 +22,8 @@ load_dotenv()
 SLACK_TOKEN = os.getenv("SLACK_TOKEN")
 MESSAGE_LIMIT_PER_REQUEST = os.getenv("MESSAGE_LIMIT_PER_REQUEST")
 FAULT_RECORD_API_URL = os.getenv("FAULT_RECORD_API_URL")
-FAULT_RECORD_POST_URL = os.path.join(FAULT_RECORD_API_URL, "api/v1/faults")
-FAULT_RECORD_UPDATE_POST_URL = os.path.join(FAULT_RECORD_API_URL, "api/v1/updates")
+FAULT_RECORD_POST_URL = os.path.join(FAULT_RECORD_API_URL, "api/v1/admin/faults")
+FAULT_RECORD_UPDATE_POST_URL = os.path.join(FAULT_RECORD_API_URL, "api/v1/admin/updates")
 UPDATE_REPLIES_FOR_DAYS = os.getenv("UPDATE_REPLIES_FOR_DAYS")
 
 
@@ -70,13 +70,11 @@ def main():
     )
     logger.info("Processing conversation history has been susscessfully completed.")
     logger.info("Posting messages to fault-record API.")
-    with open(f"{channel_id}.json", "a") as f:
-        for message in processed_messages:
-            f.write(json.dumps(message))
-    #         fault_id = post_fault_record(message, FAULT_RECORD_POST_URL)
-    #         if message.get("updates"):
-    #             post_fault_record_updates(message["updates"], fault_id, FAULT_RECORD_UPDATE_POST_URL)
-    # write_to_file(f"{channel_id}.txt", oldest_message_ts)
+    for message in processed_messages:
+         fault_id = post_fault_record(message, FAULT_RECORD_POST_URL)
+         if message.get("updates"):
+             post_fault_record_updates(message["updates"], fault_id, FAULT_RECORD_UPDATE_POST_URL)
+    write_to_file(f"{channel_id}.txt", oldest_message_ts)
 
 
 if __name__ == "__main__":
