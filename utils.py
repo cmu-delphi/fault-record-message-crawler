@@ -236,9 +236,9 @@ def get_signals_url(source: str, fault_record_api_url: str, signals: List[str]):
         str: compiled url with filters to get existing (source, signal) pairs from failt-record API
     """
     base_url = f"{fault_record_api_url}/api/v1/signals?disable_pagination=True"
-    source_filter = f'"field": "source", "op": "=", "value": "{source}"'
+    source_filter = f'"field": "signals.source", "op": "=", "value": "{source}"'
     signals_str = '"' + '", "'.join(signals) + '"'
-    signals_filter = f'"field": "signal", "op": "in", "value": [{signals_str}]'
+    signals_filter = f'"field": "signals.signal", "op": "in", "value": [{signals_str}]'
     result_url = f"{base_url}&filters=[{{{source_filter}}},{{{signals_filter}}}]"
     return result_url
 
@@ -254,7 +254,7 @@ def get_signal_ids(message: str) -> List:
     """
     try:
         source, signals = extract_source_signal_pair(message)
-        query_signals_url = get_signals_url(source, signals)
+        query_signals_url = get_signals_url(source, FAULT_RECORD_API_URL, signals)
         signals = requests.get(query_signals_url)
         signal_ids = [sig.get("signal_id") for sig in signals.json()]
         return signal_ids

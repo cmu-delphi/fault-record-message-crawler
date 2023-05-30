@@ -70,11 +70,10 @@ def main():
     )
     logger.info("Processing conversation history has been susscessfully completed.")
     logger.info("Posting messages to fault-record API.")
-    with open(f"{channel_id}.json", "a") as f:
-        for message in processed_messages:
-            fault_id = post_fault_record(message, FAULT_RECORD_POST_URL)
-            if message.get("updates"):
-                post_fault_record_updates(message["updates"], fault_id, FAULT_RECORD_UPDATE_POST_URL)
+    for message in processed_messages:
+         fault_id = post_fault_record(message, FAULT_RECORD_POST_URL)
+         if message.get("updates"):
+             post_fault_record_updates(message["updates"], fault_id, FAULT_RECORD_UPDATE_POST_URL)
     write_to_file(f"{channel_id}.txt", oldest_message_ts)
 
 
