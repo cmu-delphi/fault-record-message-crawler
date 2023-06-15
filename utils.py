@@ -89,17 +89,22 @@ def merge_lag_faults():
             payload['record_date'] = row['record_date'].isoformat()
             payload['signals'] = get_signal_ids(desc)
         
+            logger.info(f"Merging {row['rows']} records into fault# {row['fault_id']}.")
             r = requests.put(url, payload)
+
             if not r.ok:
-                print(r.json())
+                logger.error(f"Something went wrong when trying to merge fault# {row['fault_id']}: {r.json()}")
 
     # Delete the faults that were merged into the first
     df_delete = df['fault_id'][~df['fault_id'].isin(df_merged['fault_id'])]
     for fault_id in df_delete:
         url = f"{FAULT_RECORD_API_URL}/api/v1/admin/faults/{fault_id}"
+
+        logger.info(f"Deleting fault# {row['fault_id']}.")
         r = requests.delete(url)
+        
         if not r.ok:
-            print(r.json())
+            logger.error(f"Something went wrong when trying to delete fault# {fault_id}: {r.json()}")
 
 def parse_timestamp(ts: float) -> str:
     """Convert Slack message timestamp to date
