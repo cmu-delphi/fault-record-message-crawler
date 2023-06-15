@@ -90,7 +90,7 @@ def merge_lag_faults():
             payload['record_date'] = row['record_date'].isoformat()
         
             logger.info(f"Merging {row['rows']} records into fault# {row['fault_id']}.")
-            r = requests.put(url, payload, headers=headers)
+            r = requests.put(url, data=json.dumps(payload), headers=headers)
 
             if not r.ok:
                 logger.error(f"Something went wrong when trying to merge fault# {row['fault_id']}: {r.json()}")
@@ -100,7 +100,7 @@ def merge_lag_faults():
     for fault_id in df_delete:
         url = f"{FAULT_RECORD_API_URL}/api/v1/admin/faults/{fault_id}"
 
-        logger.info(f"Deleting fault# {row['fault_id']}.")
+        logger.info(f"Deleting fault# {fault_id}.")
         r = requests.delete(url, headers=headers)
         
         if not r.ok:
