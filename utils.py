@@ -40,7 +40,7 @@ def merge_lag_faults():
     if SCRAPER_USER_ID == -1:
         SCRAPER_USER_ID = get_or_create_user(SCRAPER_EMAIL, SHIB_FIRST_NAME, SHIB_LAST_NAME, FAULT_RECORD_API_URL)
 
-    FRengine = create_engine('FAULT_RECORD_DB_URI')
+    FRengine = create_engine(FAULT_RECORD_DB_URI)
     query = f"""
         SELECT
             *
@@ -87,7 +87,6 @@ def merge_lag_faults():
             payload['first_occurance'] = row['first_occurance'].isoformat()
             payload['last_occurance'] = row['last_occurance'].isoformat()
             payload['record_date'] = row['record_date'].isoformat()
-            payload['signals'] = get_signal_ids(desc)
         
             logger.info(f"Merging {row['rows']} records into fault# {row['fault_id']}.")
             r = requests.put(url, payload)
